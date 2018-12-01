@@ -133,10 +133,10 @@ def validate_Unet():
     print('validating unet')
     model.eval()
     validation_loss = 0
-    for batch_idx,(rgb, depth) in enumerate(zip(train_rgb_loader, train_depth_loader)):
+    for batch_idx,(rgb, depth) in enumerate(zip(val_rgb_loader, val_depth_loader)):
         rgb, depth = Variable(rgb[0].cuda()), Variable(depth[0].cuda())
         output = model(rgb.type(dtype))
-        target = depth[:,0,:,:].view(args.batch_size, 1, output_height, output_width)
+        target = depth[:,0,:,:].view(list(depth.shape)[0], 1, output_height, output_width)
         validation_loss += loss_function(output, target)
 #         if batch_idx == 2: break
     validation_loss /= batch_idx
