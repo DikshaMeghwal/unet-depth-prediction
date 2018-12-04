@@ -60,7 +60,8 @@ model = UNet()
 model.cuda()
 # loss_function = nn.MSELoss()
 loss_function = F.smooth_l1_loss
-optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.0001)
+# optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.0001)
+optimizer = optim.SGD(model.parameters(), lr = 0.0001, momentum=0.99)
 dtype=torch.cuda.FloatTensor
 logger = Logger('./logs/' + args.model_folder)
 

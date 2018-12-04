@@ -1,6 +1,5 @@
 import matplotlib
 import argparse
-from tqdm import tqdm
 import os
 import PIL.Image as Image
 
