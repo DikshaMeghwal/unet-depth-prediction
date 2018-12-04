@@ -2,23 +2,28 @@ from __future__ import print_function
 import zipfile
 import os
 import pdb
+import torch
 
 import torchvision.transforms as transforms
+from torchvision import datasets, transforms, utils
+
+output_height=256
+output_width=256
 
 rgb_data_transforms = transforms.Compose([
-    transforms.Resize((252, 252)),    # Different for Input Image & Depth Image
+    transforms.Resize((256, 256)),    # Different for Input Image & Depth Image
     transforms.ToTensor(),
     # transforms.Normalize((0.3337, 0.3064, 0.3171), ( 0.2672, 0.2564, 0.2629)) # Calculate this statistics for the training image.
 ])
 
 depth_data_transforms = transforms.Compose([
-    transforms.Resize((68, 68)),    # Different for Input Image & Depth Image
+    transforms.Resize((256, 256)),    # Different for Input Image & Depth Image
     transforms.ToTensor(),
     # transforms.Normalize((0.3337, 0.3064, 0.3171), ( 0.2672, 0.2564, 0.2629)) # Calculate this statistics for the training image.
 ])
 
 input_for_plot_transforms = transforms.Compose([
-    transforms.Resize((68, 68)),    # Different for Input Image & Depth Image
+    transforms.Resize((256, 256)),    # Different for Input Image & Depth Image
     transforms.ToTensor(),
     # transforms.Normalize((0.3337, 0.3064, 0.3171), ( 0.2672, 0.2564, 0.2629)) # Calculate this statistics for the training image.
 ])

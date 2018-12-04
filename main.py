@@ -46,11 +46,8 @@ args = parser.parse_args()
 
 #torch.manual_seed(seed)
 
-output_height = 68 
-output_width = 68
-
 ### Data Initialization and Loading
-from data import initialize_data, rgb_data_transforms, depth_data_transforms
+from data import initialize_data, rgb_data_transforms, depth_data_transforms, output_height, output_width
 initialize_data(args.data) # extracts the zip files, makes a validation set
 
 train_rgb_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/train_images/rgb/', transform = rgb_data_transforms), batch_size=args.batch_size, shuffle=True, num_workers=1)
