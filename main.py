@@ -125,7 +125,7 @@ def train_Unet(epoch):
                 epoch, batch_idx * len(rgb), len(train_rgb_loader.dataset),
                 100. * batch_idx / len(train_rgb_loader), loss.item()))
 #         batch_idx = batch_idx + 1
-#         if batch_idx == 2: break
+        if batch_idx == 0: break
 
 def validate_Unet():
     print('validating unet')

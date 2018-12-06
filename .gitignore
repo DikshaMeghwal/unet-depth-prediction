@@ -3,6 +3,7 @@ data/
 models/
 plots/
 logs/
+slurm*
 *.pyc
 *.pth
 *.csv

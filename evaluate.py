@@ -28,8 +28,7 @@ parser.add_argument('--batch-size', type = int, default = 8, metavar = 'N',
 
 args = parser.parse_args()
 
-output_height = 68 
-output_width = 68
+from data import output_height, output_width
 
 state_dict = torch.load("models/" + args.model_folder + "/model_" + str(args.model_no) + ".pth")
 
