@@ -10,4 +10,4 @@
 
 PATH="~/anaconda3/bin/anaconda:$PATH"
 
-python main.py --data data --batch-size 1 --epochs 10 $1
+python main.py --data data --batch-size 1 --epochs 50 $1

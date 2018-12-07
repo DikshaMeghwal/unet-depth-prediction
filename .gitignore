@@ -4,6 +4,7 @@ models/
 plots/
 logs/
 slurm*
+core*
 *.pyc
 *.pth
 *.csv

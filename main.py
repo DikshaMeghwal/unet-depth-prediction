@@ -50,8 +50,8 @@ args = parser.parse_args()
 from data import initialize_data, rgb_data_transforms, depth_data_transforms, output_height, output_width
 initialize_data(args.data) # extracts the zip files, makes a validation set
 
-train_rgb_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/train_images/rgb/', transform = rgb_data_transforms), batch_size=args.batch_size, shuffle=True, num_workers=1)
-train_depth_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/train_images/depth/', transform = depth_data_transforms), batch_size=args.batch_size, shuffle=True, num_workers=1)
+train_rgb_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/train_images/rgb/', transform = rgb_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
+train_depth_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/train_images/depth/', transform = depth_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
 val_rgb_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/val_images/rgb/', transform = rgb_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
 val_depth_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/val_images/depth/', transform = depth_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
 
@@ -60,8 +60,8 @@ model = UNet()
 model.cuda()
 # loss_function = nn.MSELoss()
 loss_function = F.smooth_l1_loss
-# optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.0001)
-optimizer = optim.SGD(model.parameters(), lr = 0.0001, momentum=0.99)
+optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.0001)
+#optimizer = optim.SGD(model.parameters(), lr = 0.0001, momentum=0.99)
 dtype=torch.cuda.FloatTensor
 logger = Logger('./logs/' + args.model_folder)
 
@@ -84,7 +84,7 @@ def format_data_for_display(tensor):
 def train_Unet(epoch):
     model.train()
     for batch_idx, (rgb, depth) in enumerate(zip(train_rgb_loader, train_depth_loader)):
-        rgb, depth = Variable(rgb[0].cuda()), Variable(depth[0].cuda())
+        rgb, depth = rgb[0].cuda(), depth[0].cuda()
         optimizer.zero_grad()
         output = model(rgb.type(dtype))
 #        print('printing output shape')
@@ -125,7 +125,7 @@ def train_Unet(epoch):
                 epoch, batch_idx * len(rgb), len(train_rgb_loader.dataset),
                 100. * batch_idx / len(train_rgb_loader), loss.item()))
 #         batch_idx = batch_idx + 1
-        if batch_idx == 0: break
+#        if batch_idx == 2: break
 
 def validate_Unet():
     print('validating unet')
