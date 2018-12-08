@@ -5,12 +5,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms, utils
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import ImageGrid
+
 from torch.autograd import Variable
 from logger import Logger
 import pdb
 import os
 import re
+import numpy as np
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch depth map prediction example')
@@ -58,16 +63,27 @@ val_depth_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + 
 from model import UNet
 model = UNet()
 model.cuda()
-# loss_function = nn.MSELoss()
-loss_function = F.smooth_l1_loss
+
+def rel_error(output, target):
+    target = target + 0.000001
+    target = log10(target)
+    output = output + 0.000001
+    output = log10(output)
+    return F.mse_loss(output, target)
+    #diff = (output-target)/target
+    #diff = torch.abs(diff)
+    #return diff.mean()
+
+loss_function = F.mse_loss
+#loss_function = F.smooth_l1_loss
+#loss_function = rel_error
 optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.0001)
 #optimizer = optim.SGD(model.parameters(), lr = 0.0001, momentum=0.99)
+#optimizer = optim.Adamax(model.parameters())
 dtype=torch.cuda.FloatTensor
 logger = Logger('./logs/' + args.model_folder)
 
 def display_images(images):
-#     print("printing image of size")
-#     print(images.shape)
     grid = utils.make_grid(images)
     plt.imshow(grid.cpu().detach().numpy().transpose((1, 2, 0)))
     plt.show();
@@ -81,37 +97,37 @@ def format_data_for_display(tensor):
     output_data = output_data + 0.5
     return output_data
 
+def plot_grid(fig, plot_input, output, actual_output, row_no):
+        grid = ImageGrid(fig, 141, nrows_ncols=(row_no, 4), axes_pad=0.05, label_mode="1")
+        for i in range(row_no):
+                for j in range(3):
+                        if(j == 0):
+                                grid[i*4+j].imshow(np.transpose(plot_input[i], (1, 2, 0)), interpolation="nearest")
+                        if(j == 1):
+                                grid[i*4+j].imshow(np.transpose(output[i][0].detach().cpu().numpy(), (0, 1)), interpolation="nearest")
+                        if(j == 2):
+                                grid[i*4+j].imshow(np.transpose(actual_output[i][0].detach().cpu().numpy(), (0, 1)), interpolation="nearest")
+
 def train_Unet(epoch):
     model.train()
     for batch_idx, (rgb, depth) in enumerate(zip(train_rgb_loader, train_depth_loader)):
         rgb, depth = rgb[0].cuda(), depth[0].cuda()
         optimizer.zero_grad()
         output = model(rgb.type(dtype))
-#        print('printing output shape')
-#        print(output.shape)
-#             print("printing weights")
-#             output_data = format_data_for_display(output[3])
-#             display_images(output_data)
-#             output_data = format_data_for_display(output[20])
-#             display_images(output_data)
         target = depth[:,0,:,:].view(list(depth.shape)[0], 1, output_height, output_width)
-        # loss = loss_function(output, depth[:,0,:,:].view(batch_size, 1, output_height, output_width))
+        #print("target")
+        #print(target)
+        #print("output")
+        #print(output)
         loss = loss_function(output, target)
-#        if batch_idx == 0:
-#             print('input:')
-#             print(rgb.data)
-#             display_images(rgb.data)
-#             print('output:')
-#             print(output)
-#             format_output = format_data_for_display(output)
-#             display_images(format_output)
-#             print('target:')
-#             print(target)
-#             format_target = format_data_for_display(target)
-#             display_images(format_target)
-#             print(loss)
         loss.backward()
         optimizer.step()
+        F = plt.figure(1, (30, 60))
+        F.subplots_adjust(left=0.05, right=0.95)
+        plot_grid(F, rgb, target, output, args.batch_size)
+        plt.savefig("plots/train_" + args.model_folder + "_" + str(epoch) + "_" + str(batch_idx) + ".jpg")
+        plt.show()
+
         if batch_idx % args.log_interval == 0:
             training_tag = "training loss epoch:" + str(epoch)
             logger.scalar_summary(training_tag, loss.item(), batch_idx)
@@ -125,7 +141,7 @@ def train_Unet(epoch):
                 epoch, batch_idx * len(rgb), len(train_rgb_loader.dataset),
                 100. * batch_idx / len(train_rgb_loader), loss.item()))
 #         batch_idx = batch_idx + 1
-#        if batch_idx == 2: break
+        if batch_idx == 0: break
 
 def validate_Unet():
     print('validating unet')
@@ -133,14 +149,18 @@ def validate_Unet():
     validation_loss = 0
     with torch.no_grad():
         for batch_idx,(rgb, depth) in enumerate(zip(val_rgb_loader, val_depth_loader)):
-            rgb, depth = Variable(rgb[0].cuda()), Variable(depth[0].cuda())
+            rgb, depth = rgb[0].cuda(), depth[0].cuda()
             output = model(rgb.type(dtype))
             target = depth[:,0,:,:].view(list(depth.shape)[0], 1, output_height, output_width)
-            validation_loss += loss_function(output, target)
+            validation_loss += rel_error(output, target)
 #           if batch_idx == 2: break
+            rel_loss = rel_error(output, target)
+            rms_loss = F.mse_loss(output, target)
         validation_loss /= batch_idx
+        rel_loss /= batch_idx
+        rms_loss /= batch_idx
         logger.scalar_summary("validation loss", validation_loss, epoch)
-        print('\nValidation set: Average loss: {:.4f} \n'.format(validation_loss))
+        print('\nValidation set: Average loss: {:.6f} {:.6f} {:.6f}\n'.format(validation_loss, rel_loss, rms_loss))
 
 folder_name = "models/" + args.model_folder
 if not os.path.exists(folder_name): os.mkdir(folder_name)
@@ -150,5 +170,5 @@ for epoch in range(1, args.epochs + 1):
     train_Unet(epoch)
     model_file = folder_name + "/" + 'model_' + str(epoch) + '.pth'
     torch.save(model.state_dict(), model_file)
-    validate_Unet()
+#    validate_Unet()
 

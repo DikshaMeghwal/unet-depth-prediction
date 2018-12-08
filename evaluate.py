@@ -59,7 +59,6 @@ def plot_grid(fig, plot_input, output, actual_output, row_no):
 batch_idx = 0
 for batch_idx,(rgb, depth, plot_input) in enumerate(zip(test_rgb_loader, test_depth_loader, input_for_plot_loader)):
     rgb, depth, plot_input = Variable(rgb[0].cuda(), requires_grad = False), Variable(depth[0].cuda(), requires_grad = False), Variable(plot_input[0].cuda(), requires_grad = False)
-    #print('rgb size:{} depth size:{}'.format(rgb.size(), depth.size()))
     print('evaluating batch:' + str(batch_idx))
     output = model(rgb)
     depth_dim = list(depth.size())
