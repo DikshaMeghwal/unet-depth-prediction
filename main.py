@@ -53,9 +53,9 @@ args = parser.parse_args()
 
 ### Data Initialization and Loading
 # from data import initialize_data, rgb_data_transforms, depth_data_transforms, output_height, output_width
-initialize_data(args.data) # extracts the zip files, makes a validation set
+#initialize_data(args.data) # extracts the zip files, makes a validation set
 
-from data import NYUDataset, rgb_data_transforms, depth_data_transforms, input_for_plot_transforms
+from data import NYUDataset, rgb_data_transforms, depth_data_transforms, input_for_plot_transforms, output_height, output_width
 
 # train_rgb_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/train_images/rgb/', transform = rgb_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
 # train_depth_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/train_images/depth/', transform = depth_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
@@ -67,7 +67,7 @@ train_loader = torch.utils.data.DataLoader(NYUDataset( 'nyu_depth_v2_labeled.mat
                                                         rgb_transform = rgb_data_transforms, 
                                                         depth_transform = depth_data_transforms), 
                                             batch_size = args.batch_size, 
-                                            shuffle = True, num_workers = 0)
+                                            shuffle = False, num_workers = 0)
 
 val_loader = torch.utils.data.DataLoader(NYUDataset( 'nyu_depth_v2_labeled.mat',
                                                        'validation', 
@@ -91,10 +91,21 @@ def rel_error(output, target):
     #diff = torch.abs(diff)
     #return diff.mean()
 
-loss_function = F.mse_loss
+def custom_loss_function(output, target):
+    # di = torch.log(target) - torch.log(output)
+    di = target - output
+    n = (output_height * output_width)
+    di2 = torch.pow(di, 2)
+    fisrt_term = torch.sum(di2,(1,2,3))/n
+    second_term = 0.5*torch.pow(torch.sum(di,(1,2,3)), 2)/ (n**2)
+    loss = fisrt_term - second_term
+    return loss.sum()
+
+loss_function = custom_loss_function
+#loss_function = F.mse_loss
 #loss_function = F.smooth_l1_loss
 #loss_function = rel_error
-optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.0001)
+optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.001)
 #optimizer = optim.SGD(model.parameters(), lr = 0.0001, momentum=0.99)
 #optimizer = optim.Adamax(model.parameters())
 dtype=torch.cuda.FloatTensor
@@ -155,8 +166,8 @@ def train_Unet(epoch):
                 #logger.histo_summary(tag + '/grad', value.grad.data.cpu().detach().numpy(), batch_idx)
 
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(rgb), len(train_rgb_loader.dataset),
-                100. * batch_idx / len(train_rgb_loader), loss.item()))
+                epoch, batch_idx * len(rgb), len(train_loader.dataset),
+                100. * batch_idx / len(train_loader), loss.item()))
 #         batch_idx = batch_idx + 1
         if batch_idx == 0: break
 
@@ -185,7 +196,8 @@ if not os.path.exists(folder_name): os.mkdir(folder_name)
 for epoch in range(1, args.epochs + 1):
     print("********* Training the Unet Model **************")
     train_Unet(epoch)
-    model_file = folder_name + "/" + 'model_' + str(epoch) + '.pth'
+    if epoch % 25== 0:
+        model_file = folder_name + "/" + 'model_' + str(epoch) + '.pth'
     torch.save(model.state_dict(), model_file)
 #    validate_Unet()
 
