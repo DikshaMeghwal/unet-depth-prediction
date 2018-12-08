@@ -52,13 +52,30 @@ args = parser.parse_args()
 #torch.manual_seed(seed)
 
 ### Data Initialization and Loading
-from data import initialize_data, rgb_data_transforms, depth_data_transforms, output_height, output_width
+# from data import initialize_data, rgb_data_transforms, depth_data_transforms, output_height, output_width
 initialize_data(args.data) # extracts the zip files, makes a validation set
 
-train_rgb_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/train_images/rgb/', transform = rgb_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
-train_depth_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/train_images/depth/', transform = depth_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
-val_rgb_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/val_images/rgb/', transform = rgb_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
-val_depth_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/val_images/depth/', transform = depth_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
+from data import NYUDataset, rgb_data_transforms, depth_data_transforms, input_for_plot_transforms
+
+# train_rgb_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/train_images/rgb/', transform = rgb_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
+# train_depth_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/train_images/depth/', transform = depth_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
+# val_rgb_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/val_images/rgb/', transform = rgb_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
+# val_depth_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/val_images/depth/', transform = depth_data_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
+
+train_loader = torch.utils.data.DataLoader(NYUDataset( 'nyu_depth_v2_labeled.mat', 
+                                                       'training', 
+                                                        rgb_transform = rgb_data_transforms, 
+                                                        depth_transform = depth_data_transforms), 
+                                            batch_size = args.batch_size, 
+                                            shuffle = True, num_workers = 0)
+
+val_loader = torch.utils.data.DataLoader(NYUDataset( 'nyu_depth_v2_labeled.mat',
+                                                       'validation', 
+                                                        rgb_transform = rgb_data_transforms, 
+                                                        depth_transform = depth_data_transforms), 
+                                            batch_size = args.batch_size, 
+                                            shuffle = False, num_workers = 0)
+
 
 from model import UNet
 model = UNet()
@@ -110,8 +127,8 @@ def plot_grid(fig, plot_input, output, actual_output, row_no):
 
 def train_Unet(epoch):
     model.train()
-    for batch_idx, (rgb, depth) in enumerate(zip(train_rgb_loader, train_depth_loader)):
-        rgb, depth = rgb[0].cuda(), depth[0].cuda()
+    for batch_idx, data in enumerate(train_loader):
+        rgb, depth = data['image'].cuda(), data['depth'].cuda()
         optimizer.zero_grad()
         output = model(rgb.type(dtype))
         target = depth[:,0,:,:].view(list(depth.shape)[0], 1, output_height, output_width)
@@ -148,8 +165,8 @@ def validate_Unet():
     model.eval()
     validation_loss = 0
     with torch.no_grad():
-        for batch_idx,(rgb, depth) in enumerate(zip(val_rgb_loader, val_depth_loader)):
-            rgb, depth = rgb[0].cuda(), depth[0].cuda()
+        for batch_idx, data in enumerate(val_loader):
+            rgb, depth = data['image'].cuda(), data['depth'].cuda()
             output = model(rgb.type(dtype))
             target = depth[:,0,:,:].view(list(depth.shape)[0], 1, output_height, output_width)
             validation_loss += rel_error(output, target)
