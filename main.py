@@ -105,7 +105,7 @@ loss_function = custom_loss_function
 #loss_function = F.mse_loss
 #loss_function = F.smooth_l1_loss
 #loss_function = rel_error
-optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.001)
+optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.0001)
 #optimizer = optim.SGD(model.parameters(), lr = 0.0001, momentum=0.99)
 #optimizer = optim.Adamax(model.parameters())
 dtype=torch.cuda.FloatTensor
@@ -198,6 +198,6 @@ for epoch in range(1, args.epochs + 1):
     train_Unet(epoch)
     if epoch % 25== 0:
         model_file = folder_name + "/" + 'model_' + str(epoch) + '.pth'
-    torch.save(model.state_dict(), model_file)
+        torch.save(model.state_dict(), model_file)
 #    validate_Unet()
 
