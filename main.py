@@ -76,8 +76,7 @@ val_loader = torch.utils.data.DataLoader(NYUDataset( 'nyu_depth_v2_labeled.mat',
                                             batch_size = args.batch_size, 
                                             shuffle = False, num_workers = 0)
 
-
-from model import UNet
+from tiny_unet import UNet
 model = UNet()
 model.cuda()
 
@@ -101,11 +100,11 @@ def custom_loss_function(output, target):
     loss = fisrt_term - second_term
     return loss.sum()
 
-loss_function = custom_loss_function
+#loss_function = custom_loss_function
 #loss_function = F.mse_loss
-#loss_function = F.smooth_l1_loss
+loss_function = F.l1_loss
 #loss_function = rel_error
-optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.0001)
+optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.01)
 #optimizer = optim.SGD(model.parameters(), lr = 0.0001, momentum=0.99)
 #optimizer = optim.Adamax(model.parameters())
 dtype=torch.cuda.FloatTensor
@@ -143,25 +142,15 @@ def train_Unet(epoch):
         optimizer.zero_grad()
         output = model(rgb.type(dtype))
         target = depth[:,0,:,:].view(list(depth.shape)[0], 1, output_height, output_width)
-        #print("target")
-        #print(target)
-        #print("output")
-        #print(output)
         loss = loss_function(output, target)
         loss.backward()
         optimizer.step()
-        F = plt.figure(1, (30, 60))
-        F.subplots_adjust(left=0.05, right=0.95)
-        plot_grid(F, rgb, target, output, args.batch_size)
-        plt.savefig("plots/train_" + args.model_folder + "_" + str(epoch) + "_" + str(batch_idx) + ".jpg")
-        plt.show()
-
         if batch_idx % args.log_interval == 0:
             training_tag = "training loss epoch:" + str(epoch)
-            logger.scalar_summary(training_tag, loss.item(), batch_idx)
+            #logger.scalar_summary(training_tag, loss.item(), batch_idx)
 
-            for tag, value in model.named_parameters():
-                tag = tag.replace('.', '/') + ":" + str(epoch)
+#            for tag, value in model.named_parameters():
+#                tag = tag.replace('.', '/') + ":" + str(epoch)
                 #logger.histo_summary(tag, value.data.cpu().numpy(), batch_idx)
                 #logger.histo_summary(tag + '/grad', value.grad.data.cpu().detach().numpy(), batch_idx)
 
@@ -169,6 +158,13 @@ def train_Unet(epoch):
                 epoch, batch_idx * len(rgb), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.item()))
 #         batch_idx = batch_idx + 1
+        if batch_idx % 25 == 0:
+            F = plt.figure(1, (30, 60))
+            F.subplots_adjust(left=0.05, right=0.95)
+            plot_grid(F, rgb, target, output, args.batch_size)
+            plt.savefig("plots/train_" + args.model_folder + "_" + str(epoch) + "_" + str(batch_idx) + ".jpg")
+            plt.show()
+
         if batch_idx == 0: break
 
 def validate_Unet():
@@ -187,7 +183,7 @@ def validate_Unet():
         validation_loss /= batch_idx
         rel_loss /= batch_idx
         rms_loss /= batch_idx
-        logger.scalar_summary("validation loss", validation_loss, epoch)
+        #logger.scalar_summary("validation loss", validation_loss, epoch)
         print('\nValidation set: Average loss: {:.6f} {:.6f} {:.6f}\n'.format(validation_loss, rel_loss, rms_loss))
 
 folder_name = "models/" + args.model_folder

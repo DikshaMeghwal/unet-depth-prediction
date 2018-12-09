@@ -13,8 +13,8 @@ import numpy as np
 import torch.nn as nn
 import torch
 
-output_height=256
-output_width=256
+output_height=32
+output_width=32
 
 class TransposeDepthInput(object):
     def __call__(self, depth):
