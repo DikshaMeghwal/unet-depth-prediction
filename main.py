@@ -16,6 +16,7 @@ import pdb
 import os
 import re
 import numpy as np
+import time
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch depth map prediction example')
@@ -46,14 +47,14 @@ train_loader = torch.utils.data.DataLoader(NYUDataset( 'nyu_depth_v2_labeled.mat
                                                         rgb_transform = rgb_data_transforms, 
                                                         depth_transform = depth_data_transforms), 
                                             batch_size = args.batch_size, 
-                                            shuffle = False, num_workers = 0)
+                                            shuffle = False, num_workers = 5)
 
 val_loader = torch.utils.data.DataLoader(NYUDataset( 'nyu_depth_v2_labeled.mat',
                                                        'validation', 
                                                         rgb_transform = rgb_data_transforms, 
                                                         depth_transform = depth_data_transforms), 
                                             batch_size = args.batch_size, 
-                                            shuffle = False, num_workers = 0)
+                                            shuffle = False, num_workers = 5)
 
 
 from tiny_unet import UNet
@@ -95,47 +96,54 @@ def plot_grid(fig, plot_input, output, actual_output, row_no):
 def train_Unet(epoch):
     model.train()
     for batch_idx, image in enumerate(train_loader):
+#        start = time.time()
         x = image['image'].cuda()
         y = image['depth'].cuda()
 
+        optimizer.zero_grad()
         y_hat = model(x.type(dtype))
         loss = custom_loss_function(y_hat, y)
-
-        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        if ((epoch-1) % 100 == 0) and batch_idx == 0:
-            to_print = "Training epoch[{}/{}] Loss: {:.3f}".format(epoch, args.epochs, loss.item())
+        if ((epoch-1) % 50 == 0) and batch_idx == 0:
+            to_print = "Training epoch[{}/{}] Loss: {:.3f}".format(epoch, args.epochs, loss.item()) 
             plot_n_save_fig(batch_idx, x, y_hat, y)
             print(to_print)
-
+#        end = time.time()
+#        print("training time for single batch for epoch {} is".format(epoch) + str(end - start))
 #        if batch_idx == 0: break
 
 def validate_Unet():
     model.eval()
     validation_loss = 0
     with torch.no_grad():
-        for idx, image in enumerate(train_loader):
+        for idx, image in enumerate(val_loader):
             x = image['image'].cuda()
             y = image['depth'].cuda()
 
             y_hat = model(x.type(dtype))
             loss = custom_loss_function(y_hat, y)
             validation_loss += loss
-            to_print = "Validation epoch[{}/{}] Loss: {:.3f}".format(epoch+1, args.epochs, loss.item())
-            if idx == 5: break
+#            if idx == 5: break
         validation_loss /= idx
-        print('\nValidation set: Average loss: {:.6f}\n'.format(validation_loss))
+#        print("validation time for single batch for epoch {} is".format(epoch) + str(end - start))
  
 folder_name = "models/" + args.model_folder
 if not os.path.exists(folder_name): os.mkdir(folder_name)
 
 for epoch in range(1, args.epochs + 1):
     print("********* Training the Unet Model **************")
+    print("epoch:{}".format(epoch)) 
+#    start = time.time()
     train_Unet(epoch)
-    validate_Unet()
-
-model_file = folder_name + "/model.pth"    
-torch.save(model.state_dict(), model_file)
+#    end = time.time()
+#    print("training time for epoch {} is".format(epoch) + str(end - start))
+#    start = time.time()
+#    end = time.time()
+#    print("validation time for epoch {} is".format(epoch) + str(end - start))
+    if epoch % 50 == 0:
+        validate_Unet()
+        model_file = folder_name + "/model_" + str(epoch) + ".pth"    
+        torch.save(model.state_dict(), model_file)
 
