@@ -12,7 +12,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 
-from model import UNet
+from tiny_unet import UNet
 import pdb
 import numpy as np
 
@@ -21,7 +21,7 @@ parser.add_argument('model_folder', type=str, metavar='F',
                     help='In which folder have you saved the model')
 parser.add_argument('--data', type=str, default='data', metavar='D',
                     help="folder where data is located. train_data.zip and test_data.zip need to be found in the folder")
-parser.add_argument('--model_no', type=int, default = 1, metavar='N',
+parser.add_argument('--model_no', type=int, default = 1900, metavar='N',
                     help='Which model no to evaluate (default: 1(first model))')
 parser.add_argument('--batch-size', type = int, default = 8, metavar = 'N',
                     help='input batch size for training (default: 8)')
@@ -46,21 +46,20 @@ model.eval()
 # input_for_plot_loader = torch.utils.data.DataLoader(datasets.ImageFolder(args.data + '/test_images/rgb/', transform = input_for_plot_transforms), batch_size=args.batch_size, shuffle=False, num_workers=1)
 
 from data import NYUDataset, input_for_plot_transforms, rgb_data_transforms, depth_data_transforms
-from main import train_loader, val_loader
 
 test_loader = torch.utils.data.DataLoader(NYUDataset( 'nyu_depth_v2_labeled.mat',
                                                        'test', 
                                                         rgb_transform = rgb_data_transforms, 
                                                         depth_transform = depth_data_transforms), 
                                             batch_size = args.batch_size, 
-                                            shuffle = False, num_workers = 0)
+                                            shuffle = False, num_workers = 50)
 
 input_for_plot_loader = torch.utils.data.DataLoader(NYUDataset( 'nyu_depth_v2_labeled.mat', 
                                                                 'test', 
                                                                 rgb_transform = input_for_plot_transforms, 
                                                                 depth_transform = depth_data_transforms), 
                                                     batch_size = args.batch_size, 
-                                                    shuffle = False, num_workers = 0)
+                                                    shuffle = False, num_workers = 50)
 
 
 def plot_grid(fig, plot_input, output, actual_output, row_no):
@@ -74,12 +73,11 @@ def plot_grid(fig, plot_input, output, actual_output, row_no):
 			if(j == 2):
 				grid[i*4+j].imshow(np.transpose(actual_output[i][0].detach().cpu().numpy(), (0, 1)), interpolation="nearest")
 
-batch_idx = 0
 for batch_idx, data in enumerate(test_loader):
-    rgb, depth = torch.tensor(data['image'], requires_grad = False), torch.tensor(data['depth'], requires_grad = False)
+    rgb, depth = torch.tensor(data['image'], requires_grad = False).cuda(), torch.tensor(data['depth'], requires_grad = False).cuda()
     # plot_input, actual_output = torch.tensor(plot_data['image'], requires_grad = False), torch.tensor(plot_data['depth'], requires_grad = False)
-    plot_input = rgb
-    actual_output = depth
+    plot_input = rgb.type(dtype)
+    actual_output = depth.type(dtype)
 
     print('evaluating batch:' + str(batch_idx))
     output = model(rgb)

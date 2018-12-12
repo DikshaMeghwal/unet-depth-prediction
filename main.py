@@ -71,7 +71,8 @@ def custom_loss_function(output, target):
     return loss.sum()
 
 loss_function = custom_loss_function
-optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.0001)
+#optimizer = optim.Adam(model.parameters(), amsgrad=True, lr=0.0001)
+optimizer = optim.SGD(model.parameters(), lr = 0.001, momentum=0.9)
 dtype=torch.cuda.FloatTensor
 logger = Logger('./logs/' + args.model_folder)
 
