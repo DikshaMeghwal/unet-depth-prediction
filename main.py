@@ -34,7 +34,7 @@ parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                      help='SGD momentum (default: 0.5)')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                      help='random seed (default: 1)')
-parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+parser.add_argument('--log-interval', type=int, default=50, metavar='N',
                      help='how many batches to wait before logging training status')
 parser.add_argument('--suffix', type=str, default='', metavar='D',
                      help='suffix for the filename of models and output files')
@@ -103,7 +103,14 @@ optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 # fine_optimizer = optim.ASGD(fine_model.parameters(), lr=0.01, lambd=0.0001, alpha=0.75, t0=1000000.0, weight_decay=0)
 
 dtype=torch.cuda.FloatTensor
-logger = Logger('./logs/' + args.model_folder)
+si_logger = Logger('./logs/' + args.model_folder + '/scale_invariant_validation_loss')
+t1_logger = Logger('./logs/' + args.model_folder + '/threshold_lt_1.25')
+t2_logger = Logger('./logs/' + args.model_folder + '/threshold_lt_1.25sq')
+t3_logger = Logger('./logs/' + args.model_folder + '/threshold_lt_1.25cb')
+rmse_logger = Logger('./logs/' + args.model_folder + '/rmse_linear')
+rmse_log_logger = Logger('./logs/' + args.model_folder + '/rmse_log')
+abs_rel_diff_logger = Logger('./logs/' + args.model_folder + '/abs_rel_diff')
+abs_rel_diff_sq_logger = Logger('./logs/' + args.model_folder + '/abs_rel_diff_sq')
 
 def plot_n_save_fig(epoch, plot_input, output, actual_output):
     F = plt.figure(1, (30, 60))
@@ -181,16 +188,11 @@ def train_Unet(epoch):
         loss.backward()
         optimizer.step()
         train_coarse_loss += loss.item()
-    # pdb.set_trace()
+        if epoch % args.log_interval==0:
+            training_tag = "training loss epoch:" + str(epoch)
+            logger.scalar_summary(training_tag, loss.item(), batch_idx)
     train_coarse_loss /= (batch_idx + 1)
     return train_coarse_loss
-        # if ((epoch-1) % 50 == 0) and batch_idx == 0:
-        #     to_print = "Training epoch[{}/{}] Loss: {:.3f}".format(epoch, args.epochs, loss.item()) 
-        #     plot_n_save_fig(batch_idx, x, y_hat, y)
-        #     print(to_print)
-#        end = time.time()
-#        print("training time for single batch for epoch {} is".format(epoch) + str(end - start))
-#        if batch_idx == 0: break
 
 def validate_Unet(epoch, training_loss):
     model.eval()
@@ -219,8 +221,6 @@ def validate_Unet(epoch, training_loss):
             rmse_log_loss += rmse_log(y_hat, y)
             abs_relative_difference_loss += abs_relative_difference(y_hat, y)
             squared_relative_difference_loss += squared_relative_difference(y_hat, y)
-#            if idx == 5: break
-        # pdb.set_trace()
         validation_loss /= (idx + 1)
         delta1_accuracy /= (idx + 1)
         delta2_accuracy /= (idx + 1)
@@ -232,21 +232,21 @@ def validate_Unet(epoch, training_loss):
         print('Epoch: {}    {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}'.
             format(epoch, training_loss, delta1_accuracy, delta2_accuracy, delta3_accuracy, rmse_linear_loss, rmse_log_loss, 
             abs_relative_difference_loss, squared_relative_difference_loss))
-#        print("validation time for single batch for epoch {} is".format(epoch) + str(end - start))
- 
+        si_logger.scalar_summary("validation loss", validation_loss, epoch)
+        t1_logger.scalar_summary("validation loss", delta1_accuracy, epoch)
+        t2_logger.scalar_summary("validation loss", delta2_accuracy, epoch)
+        t3_logger.scalar_summary("validation loss", delta3_accuracy, epoch)
+        rmse_logger.scalar_summary("validation loss", rmse_linear_loss, epoch)
+        rmse_log_logger.scalar_summary("validation loss", rmse_log_loss, epoch)
+        abs_rel_diff_logger.scalar_summary("validation loss", abs_relative_difference_loss, epoch)
+        abs_rel_diff_sq_logger.scalar_summary("validation loss", squared_relative_difference_loss, epoch)
+
 folder_name = "models/" + args.model_folder
 if not os.path.exists(folder_name): os.mkdir(folder_name)
 
 print("********* Training the Unet Model **************")
 for epoch in range(1, args.epochs + 1):
-    # print("epoch:{}".format(epoch)) 
-#    start = time.time()
     training_loss = train_Unet(epoch)
-#    end = time.time()
-#    print("training time for epoch {} is".format(epoch) + str(end - start))
-#    start = time.time()
-#    end = time.time()
-#    print("validation time for epoch {} is".format(epoch) + str(end - start))
     if epoch % 1 == 0:
         validate_Unet(epoch, training_loss)
     if epoch % 100 == 0:
