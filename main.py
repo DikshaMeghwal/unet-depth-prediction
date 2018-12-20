@@ -28,9 +28,9 @@ parser.add_argument('--batch-size', type = int, default = 32, metavar = 'N',
                      help='input batch size for training (default: 8)')
 parser.add_argument('--epochs', type=int, default = 10, metavar='N',
                       help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
+parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
                      help='learning rate (default: 0.01)')
-parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
+parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                      help='SGD momentum (default: 0.5)')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                      help='random seed (default: 1)')
@@ -84,7 +84,7 @@ def custom_loss_function(output, target):
 #fine_optimizer = optim.SGD([{'params': coarse_model.conv1.parameters(), 'lr': 0.01},{'params': coarse_model.conv2.parameters(), 'lr': 0.1},{'params': coarse_model.conv3.parameters(), 'lr': 0.01}], lr = 0.01, momentum = 0.9)
 
 # default SGD optimiser - don't work
-optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+optimizer = optim.SGD(model.parameters(), lr = 0.1, momentum=0.9)
 # fine_optimizer = optim.SGD(fine_model.parameters(), lr=args.lr, momentum=args.momentum)
 
 # coarse_optimizer = optim.Adadelta(coarse_model.parameters(), lr=1.0, rho=0.9, eps=1e-06, weight_decay=0)
@@ -190,10 +190,11 @@ def train_Unet(epoch):
         train_coarse_loss += loss.item()
         if epoch % args.log_interval==0:
             training_tag = "training loss epoch:" + str(epoch)
-            logger.scalar_summary(training_tag, loss.item(), batch_idx)
+            #logger.scalar_summary(training_tag, loss.item(), batch_idx)
     train_coarse_loss /= (batch_idx + 1)
     return train_coarse_loss
-
+print("Epochs:     Train_loss  Val_loss    Delta_1     Delta_2     Delta_3    rmse_lin    rmse_log    abs_rel.  square_relative")
+print("Paper Val:                          (0.618)     (0.891)     (0.969)     (0.871)     (0.283)     (0.228)     (0.223)")
 def validate_Unet(epoch, training_loss):
     model.eval()
     validation_loss = 0
@@ -229,8 +230,8 @@ def validate_Unet(epoch, training_loss):
         rmse_log_loss /= (idx + 1)
         abs_relative_difference_loss /= (idx + 1)
         squared_relative_difference_loss /= (idx + 1)
-        print('Epoch: {}    {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}'.
-            format(epoch, training_loss, delta1_accuracy, delta2_accuracy, delta3_accuracy, rmse_linear_loss, rmse_log_loss, 
+        print('Epoch: {}    {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}      {:.4f}'.
+            format(epoch, training_loss, validation_loss, delta1_accuracy, delta2_accuracy, delta3_accuracy, rmse_linear_loss, rmse_log_loss, 
             abs_relative_difference_loss, squared_relative_difference_loss))
         si_logger.scalar_summary("validation loss", validation_loss, epoch)
         t1_logger.scalar_summary("validation loss", delta1_accuracy, epoch)
@@ -249,7 +250,7 @@ for epoch in range(1, args.epochs + 1):
     training_loss = train_Unet(epoch)
     if epoch % 1 == 0:
         validate_Unet(epoch, training_loss)
-    if epoch % 100 == 0:
+    if epoch % 1 == 0:
         model_file = folder_name + "/model_" + str(epoch) + ".pth"    
         torch.save(model.state_dict(), model_file)
 

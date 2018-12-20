@@ -40,6 +40,10 @@ input_for_plot_transforms = transforms.Compose([
 ])
 
 class NYUDataset(Dataset):
+    def calculate_mean(self, images):
+        mean_image = np.mean(images, axis=0)
+        return mean_image
+
     def __init__(self, filename, type, rgb_transform = None, depth_transform = None):
         f = h5py.File(filename, 'r')
         if type == "training":
@@ -53,13 +57,18 @@ class NYUDataset(Dataset):
             self.depths = f['depths'][1248:]
         self.rgb_transform = rgb_transform
         self.depth_transform = depth_transform
+        self.mean_image = self.calculate_mean(f['images'][0:1449])
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
         image = self.images[idx]
+        image = (image - self.mean_image)/np.std(image)
         image = image.transpose((2, 1, 0))
+        image = (image - image.min())/(image.max() - image.min())
+        image = image * 255
+        image = image.astype('uint8')
         image = Image.fromarray(image)
         if self.rgb_transform:
             image = self.rgb_transform(image)
