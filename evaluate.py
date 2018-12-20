@@ -86,7 +86,7 @@ for batch_idx, data in enumerate(test_loader):
     F = plt.figure(1, (30, 60))
     F.subplots_adjust(left=0.05, right=0.95)
     plot_grid(F, plot_input, output, actual_output, depth_dim[0])
-    plt.savefig("imran_plots/" + args.model_folder + "_" + str(args.model_no) + "_" + str(batch_idx) + ".jpg")
+    plt.savefig("new_plots/" + args.model_folder + "_" + str(args.model_no) + "_" + str(batch_idx) + ".jpg")
     plt.show()
     #batch_idx = batch_idx + 1
     #if batch_idx == 1: break
