@@ -234,13 +234,13 @@ def validate_Unet(epoch, training_loss):
             format(epoch, training_loss, validation_loss, delta1_accuracy, delta2_accuracy, delta3_accuracy, rmse_linear_loss, rmse_log_loss, 
             abs_relative_difference_loss, squared_relative_difference_loss))
         si_logger.scalar_summary("validation loss", validation_loss, epoch)
-        t1_logger.scalar_summary("validation loss", delta1_accuracy, epoch)
-        t2_logger.scalar_summary("validation loss", delta2_accuracy, epoch)
-        t3_logger.scalar_summary("validation loss", delta3_accuracy, epoch)
-        rmse_logger.scalar_summary("validation loss", rmse_linear_loss, epoch)
-        rmse_log_logger.scalar_summary("validation loss", rmse_log_loss, epoch)
-        abs_rel_diff_logger.scalar_summary("validation loss", abs_relative_difference_loss, epoch)
-        abs_rel_diff_sq_logger.scalar_summary("validation loss", squared_relative_difference_loss, epoch)
+        t1_logger.scalar_summary("delta1 accuracy", delta1_accuracy, epoch)
+        t2_logger.scalar_summary("delta2 accuracy", delta2_accuracy, epoch)
+        t3_logger.scalar_summary("delta3 accuracy", delta3_accuracy, epoch)
+        rmse_logger.scalar_summary("rmse linear loss", rmse_linear_loss, epoch)
+        rmse_log_logger.scalar_summary("rmse log loss", rmse_log_loss, epoch)
+        abs_rel_diff_logger.scalar_summary("abs relative diff loss", abs_relative_difference_loss, epoch)
+        abs_rel_diff_sq_logger.scalar_summary("squared rel diff loss", squared_relative_difference_loss, epoch)
 
 folder_name = "models/" + args.model_folder
 if not os.path.exists(folder_name): os.mkdir(folder_name)
