@@ -13,14 +13,12 @@ parser.add_argument('model_folder', type=str, metavar='F',
                     help='In which folder have you saved the model')
 parser.add_argument('--path', type=str, default='data', metavar='D',
                     help="image file path")
-parser.add_argument('--model_no', type=int, default = 200, metavar='N',
-                    help='Which model no to evaluate (default: 1(first model))')
 
 args = parser.parse_args()
 
 from data import output_height, output_width
 
-state_dict = torch.load("models/" + args.model_folder + "/model_" + str(args.model_no) + ".pth")
+state_dict = torch.load(args.model_folder)
 
 model = UNet()
 
