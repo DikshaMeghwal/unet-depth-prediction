@@ -4,7 +4,7 @@ models/
 plots/
 logs/
 *.pyc
-*.pth
+
 *.csv
 *.DS_Store
 imran_plots/
