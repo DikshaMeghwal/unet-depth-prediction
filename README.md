@@ -5,7 +5,7 @@ predicting depth from single rgb images using u-net architecture
 Diksha Meghwal, [Imran Ali](https://github.com/ii398)
 
 For more details:<br>
-[paper](https://arxiv.org/abs/1505.04597)
+[paper](https://www.scribd.com/document/401913439/Depth-Prediction-Single-Image)
 
 <p align="center">
   <img src="https://s2.gifyu.com/images/Webp.net-gifmaker756604a43615fd5b.gif" alt="Webp.net-gifmaker756604a43615fd5b.gif" alt="monodepth">
